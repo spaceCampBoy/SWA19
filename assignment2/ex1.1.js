@@ -1,88 +1,179 @@
-function Event(obj, time, place) {
-    function time() {
-        return time
-    }
+const pipe = (...fs) => x => fs.reduce((f, y) => f(y), x)
+const compose = (...fs) => x => fs.reduceRight((f, y) => f(y), x)
 
-    function place() {
-        return place
+const Event = (time, place) => obj => {
+    const getTime = () => time
+    const getPlace = () => place
+    return {
+        ...obj,
+        getTime,
+        getPlace
     }
-    return Object.assign(obj, {
-        time,
-        place
-    })
 }
 
 
-function DataType(obj, type, unit) {
-    function type() {
-        return type
+const DataType = (type, unit) => obj => {
+    const getType = () => type
+    const getUnit = () => unit
+    const setUnit = _unit => {
+        unit = _unit
+    }
+    return {
+        ...obj,
+        getType,
+        getUnit,
+        setUnit
+    }
+}
+
+const WeatherData = value => obj => {
+    const getValue = () => value
+    const setValue = _value => {
+        value = _value
+    }
+    return {
+        ...obj,
+        getValue,
+        setValue
+    }
+}
+
+const Temperature = () => obj => {
+    function convertToF() {
+        if (obj.getUnit() === 'C') {
+            return create_temperature(
+                obj.value() *(9/5) + 32,
+                obj.place(),
+                obj.time(),
+                "F" )
+        }
     }
 
-    function unit() {
-        return unit
+    function convertToC() {
+        if (obj.getUnit() === 'F') {
+            return create_temperature(
+                obj.value() - 32 * (5 / 9),
+                obj.place(),
+                obj.time(),
+                "C"
+            )
+        }
     }
-    return Object.assign(obj, {
-        type,
-        unit
-    })
+    return {
+        ...obj,
+        convertToF,
+        convertToC
+    }
+}
+
+const create_temperature = (value, place, time, unit) => {
+    const event = Event(place, time)
+    const type = DataType('Temperature', unit)
+    const data = WeatherData(value)
+    const temp = Temperature()
+    const f = compose(temp, data, type, event)
+    return f({})
 }
 
 
-function WeatherData(obj, value, time, place, type, unit) {
-    function value() {
-        return value
+/*  function convertToInches() {
+        if (obj.getUnit() === "MM") {
+            return create_precipitation_prediction(
+                types(),
+                obj.from() / 25.4,
+                obj.to() / 25.4,
+                obj.place(),
+                obj.time(),
+                "Inches")
+        }
     }
-    const e = Event(obj, time, place)
-    const dt = DataType(e, type, unit)
-    return Object.assign(dt, value)
-}
 
-function Precipitation(precipitationType, value, time, place, type, unit) {
-    function precipitationType() {
+*/
+
+const Precipitation = () => obj => {
+    const precipitationType = () => {
         return precipitationType
     }
 
     function convertToInches() {
+        if (obj.getUnit() === "MM") {
+            return create_precipitation(
+                obj.value()* 25.4,
+                obj.place(),
+                obj.time(),
+                "MM")
+        }
 
     }
 
     function convertToMM() {
+        if (obj.getUnit() === "Inches") {
+            return create_precipitation(
+                obj.value()/25.4,
+                obj.place(),
+                onj.time(),
+                "Inches"
+            )
+        }
 
     }
-    const e = Object.assign({}, precipitationType, convertToInches, convertToMM)
-    return WeatherData(e, value, time, place, type, unit)
+    return {
+        ...obj,
+        convertToInches,
+        convertToMM
+    }
 }
 
-function Temperature(value, time, place, type, unit) {
-
-
-    function convertToF() {
-
-
-    }
-
-    function convertToC() {
-
-    }
-    const e = Object.assign({}, convertToF, convertToC)
-    return WeatherData(e, value, time, place, type, unit)
+const create_precipitation = (value, place, time, unit) => {
+    const event = Event(place, time)
+    const type = DataType('Precipitation', unit)
+    const data = WeatherData(value)
+    const precip = Precipitation()
+    const f = compose(precip, data, type, event)
+    return f({})
 }
 
-
-function Wind(direction, value, time, place, type, unit) {
+const Wind = () => obj => {
     function direction() {
         return direction
     }
 
-    function convertToMPH() {
+    function convertToMph() {
+        if (obj.getUnit() === "Mps") {
+            return create_wind(
+                obj.value() *3600,
+                obj.place(),
+                obj.time(),
+                "Mps"
+            )
+        }
 
     }
 
-    function convertToMs() {
+    function convertToMps() {
+        if (obj.getUnit() === "Mph") {
+            return create_wind(
+                obj.value() /3600,
+                obj.place(),
+                obj.time(),
+                "Mph")
+        }
 
     }
-    const e = Object.assign({}, direction, convertToMPH, convertToMs)
-    return WeatherData(e, value, time, place, type, unit)
+    return {
+        ...obj,
+        convertToMph,
+        convertToMps
+    }
+
+}
+const create_wind = (value, place, time, unit) => {
+    const event = Event(place, time)
+    const type = DataType('Wind', unit)
+    const data = WeatherData(value)
+    const wind = Wind()
+    const f = compose(wind, data, type, event)
+    return f({})
 }
 
 function CloudCoverage() {
@@ -90,77 +181,141 @@ function CloudCoverage() {
 
 }
 
-
-function WeatherPrediction(obj, to, from, time, place, type, unit) {
-    function matches(WeatherData) {
+const WeatherPrediction = (from, to) => obj => {
+    const matches = (WeatherData) => {
         return WeatherData.time() === time &&
             WeatherData.place() === place &&
             WeatherData.type() === type &&
             WeatherData.unit() === unit
     }
 
-    function to() {
-        return to
-    }
+    const getFrom = () => from
 
-    function from() {
-        return from
+    const getTo = () => to
+    return {
+        ...obj,
+        matches,
+        getFrom,
+        getTo
     }
-    const e = Event(obj, time, place)
-    const dt = DataType(e, type, unit)
-    return Object.assign(dt, matches, to, from)
-
 
 }
 
-function TemperaturePrediction(to, from, time, place, type, unit) {
-    function convertToC() {
-
-    }
-
-    function convertToF() {
-
-    }
-
-    const e = Object.assign({}, convertToF, convertToC)
-    return WeatherPrediction(e, to, from, time, place, type, unit)
+const create_temperature_prediction = (from, to, place, time, unit) => {
+    const event = Event(place, time)
+    const type = DataType('Temperature_Prediction', unit)
+    const data = WeatherPrediction(from, to)
+    const temp = Temperature()
+    const f = compose(temp, data, type, event)
+    return f({})
 }
 
-function PrecipitationPrediction(obj, types, to, from, time, place, type, unit) {
-    const e = WeatherPrediction({}, to, from, time, place, type, unit)
+
+const PrecipitationPrediction = (types) => obj => {
 
     function types() {
         return types
     }
 
     function matches(WeatherData) {
-        return e.matches(WeatherData) && types.includes(WeatherData.type())
+        return obj.matches(WeatherData) && types.includes(WeatherData.type())
     }
 
-    function convertToInches() {}
+    function convertToInches() {
+        if (obj.getUnit() === "MM") {
+            return create_precipitation_prediction(
+                types(),
+                obj.from() / 25.4,
+                obj.to() / 25.4,
+                obj.place(),
+                obj.time(),
+                "Inches")
+        }
+    }
 
-    function convertToMM() {}
-    return Object.assign(e, matches, convertToInches, convertToMM)
+    function convertToMM() {
+        if (obj.getUnit() === "Inches") {
+            return create_precipitation_prediction(
+                types(),
+                obj.from() * 25.4,
+                obj.to() * 25.4,
+                obj.place(),
+                obj.time(),
+                "MM")
+        }
+    }
+
+    return {
+        ...obj,
+        convertToInches,
+        convertToMM,
+        matches
+    }
 }
 
-function WindPrediction(obj, directions, to, from, time, place, type, unit) {
-    const e = WindPrediction({}.to, from, time, place, type, unit)
+const create_precipitation_prediction = (types, from, to, place, time, unit) => {
+    const event = Event(place, time)
+    const type = DataType('Precipitation', unit)
+    const data = WeatherPrediction(from, to)
+    const precip = Precipitation(types)
+    const f = compose(precip, data, type, event)
+    return f({})
+}
+
+
+const WindPrediction = (to, from, time, place, type, unit) => {
 
     function directions() {
         return directions
     }
 
     function matches(WeatherData) {
-      
-            return e.matches(WeatherData) && directions.includes(WeatherData.direction())
 
-        
+        return e.matches(WeatherData) && directions.includes(WeatherData.direction())
+
+
     }
 
-    function convertToMPH() {}
+    function convertToMph() {
+        if (obj.getUnit() === "Mps") {
+            return create_wind_prediction(
+                directions(),
+                obj.from()*3600,
+                obj.to()*3600,
+                obj.place(),
+                obj.time(),
+                "Mps")
+        }
 
-    function convertToMs() {}
-    return Object.assign(e, matches, convertToMPH, convertToMs)
+    }
+
+    function convertToMps() {
+        if (obj.getUnit() === "Mph") {
+            return create_wind_prediction(
+                directions(),
+                onj.from()/3600,
+                obj.to()/3600,
+                obj.place(),
+                obj.time(),
+                "Mph")
+        }
+
+    }
+    return {
+        ...obj,
+        convertToMph,
+        convertToMps,
+        matches
+    }
+
+}
+const create_wind_prediction = (to, from, place, time, unit) => {
+    const event = Event(place, time)
+    const type = DataType('Wind', unit)
+    const data = WeatherPrediction(to, from)
+    const wind = Wind()
+    const f = compose(wind, data, type, event)
+    return f({})
 }
 
 function cloudCoveragePrediction() {
@@ -168,131 +323,102 @@ function cloudCoveragePrediction() {
 }
 
 
-function DateInterval( from, to){
+const DateInterval = (from, to) => {
 
-    function from(){
+    function from() {
         return from
     }
-    function to(){
+
+    function to() {
         return to
     }
-    function contains(d){
-        return d>=from && d<=to
+
+    function contains(d) {
+        return d >= from && d <= to
     }
-    return{
-        from,to,contains
+    return {
+        from,
+        to,
+        contains
     }
 }
 
 
-function WeatherForecast(WeatherPrediction){
+function WeatherForecast(WeatherPrediction) {
     let CurrentPlace;
     let CurrentType;
     let CurrentPeriod;
 
-    function getCurrentPlace(){
-        return CurrentPlace
-    }
-
-    function setCurrentPlace(place){
+    function forPLace(place) {
         CurrentPlace = place
     }
 
-    function clearCurrentPlace(){
-        CurrentPlace = null
-    }
-    function getCurrentType(){
+    function forType() {
         return CurrentType
     }
 
-    function setCurrentType(Type){
-        CurrentType = Type
-    }
-
-    function clearCurrentType(){
-        CurrentType = null
-    }
-    function getCurrentPeriod(){
+    function forPeriod() {
         return CurrentPeriod
     }
-
-    function setCurrentPeriod(Period){
-        CurrentPeriod = Period
+    function including(){
+        
     }
 
-    function clearCurrentPeriod(){
-        CurrentPeriod = null
-    }
-
-    function convertToUSUnits(){
+    function convertToUSUnits() {
 
     }
-    function convertToInternationalUnits(){
+
+    function convertToInternationalUnits() {
 
     }
-    function add(data){
-        Array.prototype.push.apply(WeatherPrediction, data)
-    
+    const averageFromValue = () => {
+
     }
-    function data(){
+    const averageToValue = () => {
+
+    }
+
+    function data() {
         return WeatherPrediction
     }
 }
 
 
-    
-    function WeatherHistory(WeatherHistory){
-        let CurrentPlace;
-        let CurrentType;
-        let CurrentPeriod;
-    
-        function getCurrentPlace(){
-            return CurrentPlace
-        }
-    
-        function setCurrentPlace(place){
-            CurrentPlace = place
-        }
-    
-        function clearCurrentPlace(){
-            CurrentPlace = null
-        }
-        function getCurrentType(){
-            return CurrentType
-        }
-    
-        function setCurrentType(Type){
-            CurrentType = Type
-        }
-    
-        function clearCurrentType(){
-            CurrentType = null
-        }
-        function getCurrentPeriod(){
-            return CurrentPeriod
-        }
-    
-        function setCurrentPeriod(Period){
-            CurrentPeriod = Period
-        }
-    
-        function clearCurrentPeriod(){
-            CurrentPeriod = null
-        }
-    
-        function convertToUSUnits(){
-    
-        }
-        function convertToInternationalUnits(){
-    
-        }
-        function add(data){
-            Array.prototype.push.apply(WeatherHistory, data)
-        
-        }
-        function data(){
-            return WeatherHistory
-        }
+
+function WeatherHistory(WeatherHistory) {
+    let CurrentPlace;
+    let CurrentType;
+    let CurrentPeriod;
+
+    function forPlace() {
+        return CurrentPlace
+    }
+
+    function forType(place) {
+
+    }
+
+    function forPeriod() {
+    }
+
+    function including() {
+    }
+
+    function convertToUSUnits() {
+
+    }
+
+    function convertToInternationalUnits() {
+
+    }
+
+    function lowestValue() {
+
+    }
+
+    function data() {
+        return WeatherHistory
+    }
 
 
- }
+}
