@@ -1,0 +1,13 @@
+<div>
+  <app-add-temprature 
+    (addWeatherData)="addWeatherData($event)">
+  </app-add-temprature>
+
+  <app-query-panel 
+    (query)="queryWeatherData($event)">
+  </app-query-panel>
+  
+  <app-weather-data 
+    [queryData]="queryData">
+  </app-weather-data>
+</div>

@@ -77,7 +77,6 @@ const QueryPanel = ({model, dispatcher}) => (
 
 const WeatherDataBody = ({model}) => {
     if(model.getQueryType() == null){return null}
-    console.log(model.getData())
     return (
         <div>
             <h3 class="display-5">{model.getQueryType().value}</h3>
@@ -86,7 +85,7 @@ const WeatherDataBody = ({model}) => {
     )
 }
 
-const WeatherData = (data) =>(
+const WeatherData = (data) => (
     <div class="d-flex">
         {Object.keys(data).map(key => (<div class="p-2 flex-fill">{data[key]}</div>))}
     </div>

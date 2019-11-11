@@ -1,0 +1,16 @@
+<div class="container text-center">
+    <h3 className="display-5">Add Temprature Data</h3>
+    <form>
+        <div class="form-group row">
+            <div class="col-md-4">
+                <input type="text" class="form-control" [(ngModel)]="inputValue" name="inputValue" id="inputValue" placeholder=""/>
+            </div>
+            <div class="col-md-4">
+                <input type="date" class="form-control" [(ngModel)]="inputDate" name="inputDate" id="inputDate" placeholder=""/>
+            </div>
+            <div class="col-md-4">
+                <button (click)="addTemperature()" class="btn btn-primary btn-block">Add Temprature</button>
+            </div>
+        </div>
+    </form>
+</div>
