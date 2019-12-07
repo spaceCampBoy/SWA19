@@ -1,16 +1,4 @@
-import {
-    fromEvent,
-    interval
-} from 'https://dev.jspm.io/rxjs@6/_esm2015';
-
-import {
-    ajax
-} from 'https://dev.jspm.io/rxjs@6/_esm2015/ajax';
-
-import {
-    map,
-    concatMap
-} from 'https://dev.jspm.io/rxjs@6/_esm2015/operators';
+import { fromEvent } from 'https://dev.jspm.io/rxjs@6/_esm2015';
 
 const warningColors = {
     0: "s0",
@@ -22,54 +10,50 @@ const warningColors = {
     6: "s6",
     7: "s7"
 }
-const warningUrl = 'http://localhost:8080/warnings';
-let warningUrlSince;
+const warningUrl = 'ws://localhost:8090/warnings';
+
 let warnings = [];
-let timeLastUpdate;
-let warningPollingObservable;
-let subscription;
-let subscribedToObservable = false;
+let websocket;
+let subscribed = true;
 let severityFilterValue = 0;
 
 const initialWarningSetup = () => {
+    setupConnectionToServer();
     setupSubUnsubButton();
     setupWarningSeveritySelection();
-    ajax.getJSON(warningUrl)
-        .subscribe(res => pollSetup(res));
 }
 
-const pollSetup = (res) => {
-    parseData(res);
-    warningPollingObservable = poll_warnings();
-    subscribeToWarnigs();
-    subscribedToObservable = true;
+const setupConnectionToServer = () => {
+    websocket = new WebSocket(warningUrl);
+    websocket.onopen = () => {
+        subscribeToWarnigs();
+    }
+    websocket.onmessage = message => {
+        parseData(JSON.parse(message.data));
+    }
 }
+
 
 const subscribeToWarnigs = () => {
-
-    subscription = warningPollingObservable.subscribe(res => parseData(res));
+    const message = 'subscribe';
+    websocket.send(message);
 }
 
 const unsubscribeToWarnigs = () => {
-    subscription.unsubscribe();
+    const message ='unsubscribe';
+    websocket.send(message);
 }
 
 const parseData = (res) => {
-    // console.log(res);
-    timeLastUpdate = res.time;
-    warningUrlSince = `${warningUrl}/since/${timeLastUpdate}`;
-    parseWarnings(res.warnings);
+    if(res.warnings)
+    {
+        parseWarnings(res.warnings);
+    }
+    else
+    {
+        parseWarning(res);
+    }
 }
-
-const poll_warnings = () => interval(5000)
-    .pipe(concatMap(() => ajax.getJSON(warningUrlSince)))
-    .pipe(map(res => {
-        if (res.warnings) {
-            console.log(res.warnings);
-            res.warnings = res.warnings.filter(warning => warning.severity >= severityFilterValue);
-        }
-        return res;
-    }))
 
 const parseWarnings = (newWarnings) => {
     if (warnings.length === 0) {
@@ -77,13 +61,20 @@ const parseWarnings = (newWarnings) => {
         warnings.forEach(warning => addNewWarning(warning));
     } else {
         newWarnings.forEach(warning => {
-            if (warningExists(warning)) {
-                updateWarning(warning);
-            } else {
-                warnings.push(warning);
-                addNewWarning(warning);
-            }
+            parseWarning(warning);
         });
+    }
+}
+
+const parseWarning = (warning) => {
+    if(warning.severity >= severityFilterValue)
+    {
+        if (warningExists(warning)) {
+            updateWarning(warning);
+        } else {
+            warnings.push(warning);
+            addNewWarning(warning);
+        }
     }
 }
 
@@ -117,15 +108,14 @@ const setupSubUnsubButton = () => {
 }
 
 const subUnsub = (subUnsubBtn) => {
-    if (subscribedToObservable) {
+    if (subscribed) {
         unsubscribeToWarnigs();
-        subscribedToObservable = false;
         subUnsubBtn.innerHTML = 'Subscribe';
     } else {
         subscribeToWarnigs();
-        subscribedToObservable = true;
         subUnsubBtn.innerHTML = 'Unsubscribe';
     }
+    subscribed = !subscribed;
 }
 
 const setupWarningSeveritySelection = () => {
